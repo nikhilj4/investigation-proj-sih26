@@ -412,6 +412,7 @@ function CreateCaseModal({ isOpen, onClose, onCaseCreated }: { isOpen: boolean, 
 function DashboardView() {
   const navigate = useNavigate();
   const [cases, setCases] = useState<any[]>([]);
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -420,79 +421,34 @@ function DashboardView() {
   const [priorityFilter, setPriorityFilter] = useState('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const fetchCases = () => {
+  const fetchDashboardData = () => {
     setLoading(true);
-    api.get('/cases')
-      .then(res => {
-        setCases(res.data.cases || res.data || []);
-        setLoading(false);
-      })
-      .catch(() => {
-        setLoading(false);
-      });
+    Promise.all([
+      api.get('/cases'),
+      api.get('/dashboard')
+    ]).then(([casesRes, dashRes]) => {
+      setCases(casesRes.data.cases || casesRes.data || []);
+      setDashboardStats(dashRes.data.stats || null);
+      setLoading(false);
+    }).catch(() => {
+      setLoading(false);
+    });
   };
 
   useEffect(() => {
-    fetchCases();
+    fetchDashboardData();
   }, []);
 
-  const sampleCases = [
-    {
-      id: 1,
-      case_number: 'FIR-2026-0891',
-      title: 'Operation Phantom Wire',
-      subtitle: 'Multi-State Financial Fraud',
-      case_type: 'Financial Crime',
-      status: 'Under Investigation',
-      priority: 'High',
-      creator_name: 'Agent D. Vance',
-      document_count: 142,
-      entity_count: 19,
-      relationships_count: 43,
-      linked_cases_count: 3,
-      updated_at: '24 Oct 2024\n19:48',
-      alerts_count: 2
-    },
-    {
-      id: 2,
-      case_number: 'FIR-2026-0723',
-      title: 'Metro Nexus',
-      subtitle: 'Organized Crime Network',
-      case_type: 'Organized Crime',
-      status: 'Active',
-      priority: 'High',
-      creator_name: 'Priya Sharma',
-      document_count: 87,
-      entity_count: 26,
-      relationships_count: 63,
-      linked_cases_count: 5,
-      updated_at: '24 Oct 2024\n17:32',
-      alerts_count: 1
-    },
-    {
-      id: 3,
-      case_number: 'FIR-2026-0611',
-      title: 'Silent Route',
-      subtitle: 'Narcotics Investigation',
-      case_type: 'Narcotics',
-      status: 'Under Review',
-      priority: 'High',
-      creator_name: 'Arjun Mehta',
-      document_count: 51,
-      entity_count: 14,
-      relationships_count: 29,
-      linked_cases_count: 2,
-      updated_at: '24 Oct 2024\n14:11',
-      alerts_count: 0
-    }
-  ];
+  const totalCasesCount = cases.length;
+  const activeCasesCount = cases.filter(c => c.status === 'ACTIVE' || c.status === 'Active' || c.status === 'REGISTERED' || c.status === 'UNDER_INVESTIGATION' || c.status === 'Under Investigation').length;
+  const underReviewCount = cases.filter(c => c.status === 'UNDER_REVIEW' || c.status === 'Under Review').length;
+  const priorityCasesCount = cases.filter(c => c.priority === 'CRITICAL' || c.priority === 'HIGH' || c.priority === 'Critical' || c.priority === 'High').length;
+  const totalDocumentsCount = dashboardStats?.total_documents ?? cases.reduce((acc, c) => acc + (c.document_count || 0), 0);
+  const totalEntitiesCount = dashboardStats?.total_entities ?? cases.reduce((acc, c) => acc + (c.entity_count || 0), 0);
 
-  const displayCases = cases.length > 0 ? cases : sampleCases;
-
-  const filteredCases = displayCases.filter(c => {
-    if (activeTab === 'MY' && c.creator_name !== 'Agent D. Vance') return false;
-    if (activeTab === 'ACTIVE' && c.status !== 'Active' && c.status !== 'Under Investigation' && c.status !== 'REGISTERED') return false;
-    if (activeTab === 'REVIEW' && c.status !== 'Under Review') return false;
+  const filteredCases = cases.filter(c => {
+    if (activeTab === 'ACTIVE' && c.status !== 'Active' && c.status !== 'ACTIVE' && c.status !== 'Under Investigation' && c.status !== 'UNDER_INVESTIGATION' && c.status !== 'REGISTERED') return false;
+    if (activeTab === 'REVIEW' && c.status !== 'Under Review' && c.status !== 'UNDER_REVIEW') return false;
     if (activeTab === 'CRITICAL' && c.priority !== 'High' && c.priority !== 'Critical' && c.priority !== 'CRITICAL' && c.priority !== 'HIGH') return false;
 
     if (searchQuery) {
@@ -516,7 +472,7 @@ function DashboardView() {
       <CreateCaseModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onCaseCreated={fetchCases}
+        onCaseCreated={fetchDashboardData}
       />
 
       {/* Page Header */}
@@ -531,7 +487,7 @@ function DashboardView() {
             <Calendar size={18} />
             <div>
               <b>Today</b>
-              <span>24 Oct 2024</span>
+              <span>{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
             </div>
           </div>
 
@@ -553,8 +509,8 @@ function DashboardView() {
           </div>
           <div>
             <div className="kpi-label">Total Cases</div>
-            <div className="kpi-value">{displayCases.length}</div>
-            <div className="kpi-detail positive">+2 this month</div>
+            <div className="kpi-value">{totalCasesCount}</div>
+            <div className="kpi-detail positive">{totalCasesCount > 0 ? `${totalCasesCount} Registered` : '0 Cases'}</div>
           </div>
         </div>
 
@@ -564,9 +520,7 @@ function DashboardView() {
           </div>
           <div>
             <div className="kpi-label">Active Cases</div>
-            <div className="kpi-value">
-              {displayCases.filter(c => c.status === 'Active' || c.status === 'REGISTERED' || c.status === 'Under Investigation').length}
-            </div>
+            <div className="kpi-value">{activeCasesCount}</div>
             <div className="kpi-detail">Ongoing investigation</div>
           </div>
         </div>
@@ -577,7 +531,7 @@ function DashboardView() {
           </div>
           <div>
             <div className="kpi-label">Under Review</div>
-            <div className="kpi-value">4</div>
+            <div className="kpi-value">{underReviewCount}</div>
             <div className="kpi-detail">Pending clearance</div>
           </div>
         </div>
@@ -588,21 +542,19 @@ function DashboardView() {
           </div>
           <div>
             <div className="kpi-label">Priority Cases</div>
-            <div className="kpi-value">
-              {displayCases.filter(c => c.priority === 'High' || c.priority === 'HIGH' || c.priority === 'CRITICAL').length}
-            </div>
+            <div className="kpi-value">{priorityCasesCount}</div>
             <div className="kpi-detail" style={{ color: '#dc2626' }}>Requires immediate action</div>
           </div>
         </div>
 
         <div className="kpi">
           <div className="kpi-icon">
-            <Link2 size={20} />
+            <Users size={20} />
           </div>
           <div>
-            <div className="kpi-label">Linked Cases</div>
-            <div className="kpi-value">8</div>
-            <div className="kpi-detail">Cross-jurisdictional</div>
+            <div className="kpi-label">Extracted Entities</div>
+            <div className="kpi-value">{totalEntitiesCount}</div>
+            <div className="kpi-detail">Database total</div>
           </div>
         </div>
 
@@ -612,8 +564,8 @@ function DashboardView() {
           </div>
           <div>
             <div className="kpi-label">Total Documents</div>
-            <div className="kpi-value">156</div>
-            <div className="kpi-detail positive">+18 index updates</div>
+            <div className="kpi-value">{totalDocumentsCount}</div>
+            <div className="kpi-detail positive">Indexed evidence</div>
           </div>
         </div>
       </div>
@@ -626,31 +578,25 @@ function DashboardView() {
             onClick={() => setActiveTab('ALL')}
             className={`tab ${activeTab === 'ALL' ? 'active' : ''}`}
           >
-            All Cases ({displayCases.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('MY')}
-            className={`tab ${activeTab === 'MY' ? 'active' : ''}`}
-          >
-            My Cases (6)
+            All Cases ({totalCasesCount})
           </button>
           <button
             onClick={() => setActiveTab('ACTIVE')}
             className={`tab ${activeTab === 'ACTIVE' ? 'active' : ''}`}
           >
-            Active Inquiries (5)
+            Active Inquiries ({activeCasesCount})
           </button>
           <button
             onClick={() => setActiveTab('REVIEW')}
             className={`tab ${activeTab === 'REVIEW' ? 'active' : ''}`}
           >
-            Under Review (4)
+            Under Review ({underReviewCount})
           </button>
           <button
             onClick={() => setActiveTab('CRITICAL')}
             className={`tab ${activeTab === 'CRITICAL' ? 'active' : ''}`}
           >
-            Critical / High (3)
+            Critical / High ({priorityCasesCount})
           </button>
         </div>
 
@@ -810,11 +756,9 @@ function DashboardView() {
 
         {/* Footer */}
         <div className="table-footer">
-          <div>Showing 1 to {filteredCases.length} of {displayCases.length} entries</div>
+          <div>Showing 1 to {filteredCases.length} of {totalCasesCount} entries</div>
           <div className="pagination">
             <button className="current">1</button>
-            <button>2</button>
-            <button>3</button>
           </div>
         </div>
       </div>
