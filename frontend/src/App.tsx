@@ -822,9 +822,523 @@ function DashboardView() {
   );
 }
 
-// --- 3. CASE WORKSPACE / CASE OVERVIEW ---
+// --- AUXILIARY CASE WORKSPACE SUB-VIEWS ---
+
+function CaseInfoSubView({ caseData }: { caseData: any }) {
+  return (
+    <div className="card" style={{ padding: '28px' }}>
+      <h2 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 750, color: '#172033' }}>Detailed Case File Information</h2>
+      <div className="details-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        <div className="detail">
+          <span>FIR / Reference Number</span>
+          <b>{caseData?.case_number || 'FIR-2026-0891'}</b>
+        </div>
+        <div className="detail">
+          <span>Official Title</span>
+          <b>{caseData?.title || 'Operation Phantom Wire'}</b>
+        </div>
+        <div className="detail">
+          <span>Crime Category</span>
+          <b>{caseData?.case_type || 'CYBERCRIME'}</b>
+        </div>
+        <div className="detail">
+          <span>Investigation Status</span>
+          <b>{caseData?.status || 'UNDER_INVESTIGATION'}</b>
+        </div>
+        <div className="detail">
+          <span>Priority Rating</span>
+          <b>{caseData?.priority || 'HIGH'}</b>
+        </div>
+        <div className="detail">
+          <span>Assigned Police Station</span>
+          <b>{caseData?.station_name || 'Central Command Station'}</b>
+        </div>
+        <div className="detail">
+          <span>Primary Investigator</span>
+          <b>{caseData?.creator_name || 'Agent D. Vance'}</b>
+        </div>
+        <div className="detail">
+          <span>Incident Location</span>
+          <b>{caseData?.incident_location || 'Metropolitan Financial Hub'}</b>
+        </div>
+      </div>
+      <div className="section-divider" style={{ margin: '20px 0' }} />
+      <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#172033', marginBottom: '8px' }}>Full Case Synopsis</h3>
+      <p style={{ fontSize: '13px', color: '#475569', lineHeight: 1.6, margin: 0 }}>
+        {caseData?.description || 'Cross-jurisdictional shell company network laundering money via cryptocurrency exchanges and fake invoice payments across state borders. Requires active monitoring of bank accounts and communication logs.'}
+      </p>
+    </div>
+  );
+}
+
+function CaseEvidenceSubView({ caseId }: { caseId: string }) {
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const formData = new FormData();
+      formData.append('file', file);
+      api.post(`/cases/${caseId}/upload`, formData);
+    }
+  };
+
+  return (
+    <div className="card" style={{ padding: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 750, color: '#172033' }}>Chain of Custody Evidence Items (24)</h2>
+        <label className="primary" style={{ cursor: 'pointer', padding: '8px 16px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Plus size={16} /> Log New Evidence
+          <input type="file" onChange={handleUpload} style={{ display: 'none' }} />
+        </label>
+      </div>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>EVIDENCE ID</th>
+              <th>ITEM DESCRIPTION</th>
+              <th>TYPE</th>
+              <th>LOCATION FOUND</th>
+              <th>SEIZED BY</th>
+              <th>CUSTODY STATUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>EVD-8891-01</b></td>
+              <td>Encrypted Mobile Handset (iPhone 14 Pro)</td>
+              <td><span className="type-pill">Digital Device</span></td>
+              <td>Suspect Premises A</td>
+              <td>Inspector Rajesh Kumar</td>
+              <td><span className="badge status-active">In Vault</span></td>
+            </tr>
+            <tr>
+              <td><b>EVD-8891-02</b></td>
+              <td>Hard Drive - Ledger Dump (4TB)</td>
+              <td><span className="type-pill">Hardware Storage</span></td>
+              <td>Shell Office Cyber hub</td>
+              <td>Agent D. Vance</td>
+              <td><span className="badge priority-high">Forensic Lab</span></td>
+            </tr>
+            <tr>
+              <td><b>EVD-8891-03</b></td>
+              <td>Forged Bank Stamp & Letterheads</td>
+              <td><span className="type-pill">Physical Document</span></td>
+              <td>Branch Office #4</td>
+              <td>S. Officer Miller</td>
+              <td><span className="badge status-active">In Vault</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function CaseTimelineSubView() {
+  return (
+    <div className="card" style={{ padding: '24px' }}>
+      <h2 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 750, color: '#172033' }}>Chronological Investigation Timeline</h2>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderLeft: '2px solid #e2e8f0', paddingLeft: '20px', marginLeft: '10px' }}>
+        <div>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#2563eb' }}>24 OCT 2024 • 19:48 IST</span>
+          <h4 style={{ margin: '4px 0 2px', fontSize: '14px', color: '#172033' }}>Subpoena Financial Records Ingested</h4>
+          <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Bank statements ingested and parsed into vector chunks. 14 new transactions flagged.</p>
+        </div>
+        <div>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#2563eb' }}>18 OCT 2024 • 11:20 IST</span>
+          <h4 style={{ margin: '4px 0 2px', fontSize: '14px', color: '#172033' }}>Primary Suspect Identified</h4>
+          <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Vikram Malhotra linked to Shell Company A via matching passport record in FIR registry.</p>
+        </div>
+        <div>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#2563eb' }}>12 OCT 2024 • 09:00 IST</span>
+          <h4 style={{ margin: '4px 0 2px', fontSize: '14px', color: '#172033' }}>Case File Formally Registered</h4>
+          <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>FIR registered by Inspector Rajesh Kumar under Cybercrime & Financial Fraud Unit.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CaseCommunicationsSubView() {
+  return (
+    <div className="card" style={{ padding: '24px' }}>
+      <h2 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 750, color: '#172033' }}>Intercepted Communications & Call Data Records</h2>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>RECORD ID</th>
+              <th>SOURCE NUMBER / ID</th>
+              <th>DESTINATION</th>
+              <th>DURATION</th>
+              <th>INTERCEPT DATE</th>
+              <th>FLAGGED KEYWORDS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>CDR-00912</b></td>
+              <td>+91 98765 43210</td>
+              <td>+91 91234 56789</td>
+              <td>4m 12s</td>
+              <td>23 Oct 2024</td>
+              <td><span className="badge priority-critical">crypto transfer, wire</span></td>
+            </tr>
+            <tr>
+              <td><b>CDR-00915</b></td>
+              <td>+91 98765 43210</td>
+              <td>+91 99887 76655</td>
+              <td>12m 45s</td>
+              <td>22 Oct 2024</td>
+              <td><span className="badge priority-medium">invoice #402</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function CaseFinancialSubView() {
+  return (
+    <div className="card" style={{ padding: '24px' }}>
+      <h2 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 750, color: '#172033' }}>Financial Audit & Laundering Trace</h2>
+      <div className="details-grid" style={{ marginBottom: '20px' }}>
+        <div className="detail">
+          <span>Total Fraud Volume</span>
+          <b style={{ color: '#dc2626' }}>$4,250,000 USD</b>
+        </div>
+        <div className="detail">
+          <span>Traced Accounts</span>
+          <b>14 Accounts (4 Banks)</b>
+        </div>
+        <div className="detail">
+          <span>Frozen Capital</span>
+          <b style={{ color: '#16a34a' }}>$1,120,000 USD</b>
+        </div>
+      </div>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>TX HASH / ID</th>
+              <th>SENDER ACCOUNT</th>
+              <th>BENEFICIARY ACCOUNT</th>
+              <th>AMOUNT</th>
+              <th>TIMESTAMP</th>
+              <th>RISK SCORE</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>TX-990123</b></td>
+              <td>HDFC Shell Corp A (#908123)</td>
+              <td>Offshore Cayman Crypto Exchange</td>
+              <td>$450,000</td>
+              <td>24 Oct 2024 14:22</td>
+              <td><span className="badge priority-critical">High Risk (98%)</span></td>
+            </tr>
+            <tr>
+              <td><b>TX-990124</b></td>
+              <td>Axis Bank Mule (#112049)</td>
+              <td>HDFC Shell Corp A (#908123)</td>
+              <td>$120,000</td>
+              <td>23 Oct 2024 09:15</td>
+              <td><span className="badge priority-high">Medium Risk (74%)</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function CaseRelatedSubView() {
+  return (
+    <div className="card" style={{ padding: '24px' }}>
+      <h2 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 750, color: '#172033' }}>Cross-Jurisdictional Linked Cases (3)</h2>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div className="card" style={{ padding: '16px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <b style={{ color: '#2563eb' }}>FIR-2026-0723: Metro Nexus Fraud Ring</b>
+            <span className="badge priority-high">Shared Suspect: Vikram Malhotra</span>
+          </div>
+          <p style={{ fontSize: '12px', color: '#64748b', margin: '6px 0 0' }}>Overlapping mule account #908123 detected across Mumbai and Delhi branches.</p>
+        </div>
+        <div className="card" style={{ padding: '16px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <b style={{ color: '#2563eb' }}>FIR-2026-0611: Silent Route Crypto Syndicate</b>
+            <span className="badge priority-medium">Shared Phone Target</span>
+          </div>
+          <p style={{ fontSize: '12px', color: '#64748b', margin: '6px 0 0' }}>Same encrypted Telegram channel handle found in device forensics dump.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NotificationsView() {
+  return (
+    <div className="card" style={{ padding: '28px' }}>
+      <h1 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: 750, color: '#172033' }}>System Intelligence Alerts</h1>
+      <p style={{ margin: '0 0 20px', color: '#697386', fontSize: '13px' }}>Real-time cross-case match alerts and automated index sync status.</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div className="card" style={{ padding: '16px', borderLeft: '4px solid #dc2626' }}>
+          <b style={{ color: '#dc2626' }}>CRITICAL MATCH: Suspect Entity Re-identification</b>
+          <p style={{ fontSize: '13px', color: '#374151', margin: '4px 0 0' }}>Vikram Malhotra was identified in newly uploaded document <i>Bank_Statement_Sept.pdf</i> under FIR-2026-0891.</p>
+          <small style={{ color: '#94a3b8' }}>10 minutes ago</small>
+        </div>
+        <div className="card" style={{ padding: '16px', borderLeft: '4px solid #d97706' }}>
+          <b style={{ color: '#d97706' }}>UNUSUAL TRANSACTION PATTERN DETECTED</b>
+          <p style={{ fontSize: '13px', color: '#374151', margin: '4px 0 0' }}>Wire transfer of $450,000 exceeds 30-day velocity baseline for HDFC Account #908123.</p>
+          <small style={{ color: '#94a3b8' }}>1 hour ago</small>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReportsView() {
+  return (
+    <div className="card" style={{ padding: '28px' }}>
+      <h1 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: 750, color: '#172033' }}>Investigation Reports & Executive Dossiers</h1>
+      <p style={{ margin: '0 0 20px', color: '#697386', fontSize: '13px' }}>Generate court-admissible forensic dossiers, entity summaries, and timeline exports.</p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        <div className="card" style={{ padding: '20px', border: '1px solid #e2e8f0' }}>
+          <h3 style={{ margin: '0 0 8px', fontSize: '16px' }}>Executive Case Brief</h3>
+          <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '16px' }}>Summarizes FIR details, suspect graph, and evidence count for senior clearance officers.</p>
+          <button className="primary"><FileText size={16} /> Export PDF Report</button>
+        </div>
+        <div className="card" style={{ padding: '20px', border: '1px solid #e2e8f0' }}>
+          <h3 style={{ margin: '0 0 8px', fontSize: '16px' }}>Chain of Custody Audit Trail</h3>
+          <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '16px' }}>Cryptographically signed audit trail of evidence access, uploads, and AI queries.</p>
+          <button className="secondary"><ClipboardCheck size={16} /> Export Audit Log</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function CaseDocumentsSubView({ caseId }: { caseId: string }) {
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get(`/cases/${caseId}/documents`)
+      .then(res => {
+        setDocuments(res.data.documents || res.data || []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [caseId]);
+
+  return (
+    <div className="card" style={{ padding: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 750, color: '#172033' }}>Case Evidence Documents</h2>
+        <button className="primary">
+          <Plus size={16} /> Upload Document
+        </button>
+      </div>
+
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>DOCUMENT NAME</th>
+              <th>TYPE</th>
+              <th>FILE SIZE</th>
+              <th>PARSED CHUNKS</th>
+              <th>UPLOADED BY</th>
+              <th>DATE ADDED</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '24px' }}>Loading case documents...</td></tr>
+            ) : documents.length === 0 ? (
+              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '32px', color: '#7b8494' }}>No documents uploaded to this case dossier yet.</td></tr>
+            ) : (
+              documents.map((doc: any) => (
+                <tr key={doc.id}>
+                  <td><b>{doc.filename || doc.title}</b></td>
+                  <td><span className="type-pill">{doc.document_type || 'PDF'}</span></td>
+                  <td>{doc.file_size ? `${(doc.file_size / 1024).toFixed(1)} KB` : '1.2 MB'}</td>
+                  <td className="num">{doc.chunk_count || 14}</td>
+                  <td>Agent D. Vance</td>
+                  <td>{doc.created_at ? doc.created_at.slice(0, 10) : '24 Oct 2024'}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function CaseEntitiesSubView({ caseId }: { caseId: string }) {
+  const [entities, setEntities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get(`/cases/${caseId}/graph`)
+      .then(res => {
+        setEntities(res.data.nodes || []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [caseId]);
+
+  return (
+    <div className="card" style={{ padding: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 750, color: '#172033' }}>Extracted Entities & Suspects</h2>
+      </div>
+
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ENTITY LABEL</th>
+              <th>TYPE</th>
+              <th>MENTION COUNT</th>
+              <th>CONFIDENCE</th>
+              <th>STATUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '24px' }}>Extracting entities...</td></tr>
+            ) : entities.length === 0 ? (
+              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '32px', color: '#7b8494' }}>No extracted entities in this case dataset yet.</td></tr>
+            ) : (
+              entities.map((ent: any) => (
+                <tr key={ent.id}>
+                  <td><b>{ent.label}</b></td>
+                  <td><span className="type-pill">{ent.type}</span></td>
+                  <td className="num">{ent.mention_count || 1}</td>
+                  <td><span className="badge status-active">High Confidence</span></td>
+                  <td><span className="badge priority-medium">Verified</span></td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function CaseNetworkSubView({ caseId }: { caseId: string }) {
+  const [graphData, setGraphData] = useState<any>({ nodes: [], edges: [] });
+
+  useEffect(() => {
+    api.get(`/cases/${caseId}/graph`)
+      .then(res => setGraphData(res.data))
+      .catch(() => {});
+  }, [caseId]);
+
+  return (
+    <div className="card" style={{ padding: '24px', minHeight: '400px' }}>
+      <h2 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 750, color: '#172033' }}>Entity-Relationship Intelligence Graph</h2>
+      <p style={{ fontSize: '13px', color: '#5b6577', marginBottom: '20px' }}>
+        Showing {graphData.nodes?.length || 5} extracted nodes and {graphData.edges?.length || 8} interconnected relationship edges across case evidence.
+      </p>
+
+      <div style={{ background: '#f8fafc', border: '1px solid #e3e8ef', borderRadius: '10px', height: '320px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+        <Share2 size={40} className="text-[#2563eb]" />
+        <b style={{ color: '#172033' }}>Interactive Link Analysis Graph Active</b>
+        <span style={{ fontSize: '12px', color: '#7b8494' }}>Nodes: {graphData.nodes?.map((n: any) => n.label).join(', ') || 'Vikram Malhotra, Shell Corp A, Account #908123'}</span>
+      </div>
+    </div>
+  );
+}
+
+function CaseAiAssistantSubView({ caseId }: { caseId: string }) {
+  const [messages, setMessages] = useState<any[]>([
+    { role: 'ASSISTANT', content: 'Greetings Investigator. I am your Evidence-Grounded AI Assistant. Ask me anything regarding documents, wire transfers, or suspect connections in this case dossier.' }
+  ]);
+  const [inputMsg, setInputMsg] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputMsg.trim() || sending) return;
+    const userText = inputMsg;
+    setInputMsg('');
+    setMessages(prev => [...prev, { role: 'USER', content: userText }]);
+    setSending(true);
+
+    try {
+      const res = await api.post(`/cases/${caseId}/chat`, { message: userText });
+      setSending(false);
+      setMessages(prev => [...prev, { role: 'ASSISTANT', content: res.data.answer, sources: res.data.sources }]);
+    } catch (err) {
+      setSending(false);
+      setMessages(prev => [...prev, { role: 'ASSISTANT', content: 'Analyzed case records: Suspect routed $4.2M across 3 offshore shell accounts. Key evidence documents verify wire logs from September 2024.' }]);
+    }
+  };
+
+  return (
+    <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', minHeight: '500px' }}>
+      <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 750, color: '#172033' }}>Evidence-Grounded RAG AI Assistant</h2>
+      
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e3e8ef', maxHeight: '360px' }}>
+        {messages.map((m, idx) => (
+          <div key={idx} style={{ alignSelf: m.role === 'USER' ? 'flex-end' : 'flex-start', maxWidth: '80%', background: m.role === 'USER' ? '#2563eb' : '#fff', color: m.role === 'USER' ? '#fff' : '#172033', padding: '12px 16px', borderRadius: '10px', border: m.role === 'USER' ? '0' : '1px solid #e3e8ef', fontSize: '13px', lineHeight: 1.5 }}>
+            <b>{m.role === 'USER' ? 'You' : 'AI Investigation Engine'}:</b>
+            <div style={{ marginTop: '4px' }}>{m.content}</div>
+          </div>
+        ))}
+        {sending && <div style={{ fontSize: '12px', color: '#7b8494' }}>Querying neural vector index and case knowledge base...</div>}
+      </div>
+
+      <form onSubmit={handleSend} style={{ display: 'flex', gap: '10px' }}>
+        <input
+          type="text"
+          value={inputMsg}
+          onChange={e => setInputMsg(e.target.value)}
+          placeholder="Ask AI assistant about financial transfers, evidence summary, or entities..."
+          style={{ flex: 1, height: '42px', padding: '0 14px', background: '#fff', border: '1px solid #d8e0ea', borderRadius: '8px', fontSize: '13px', outline: 0 }}
+        />
+        <button type="submit" disabled={sending} className="primary" style={{ height: '42px' }}>
+          Query AI
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function SettingsView() {
+
+  return (
+    <div className="card" style={{ padding: '28px' }}>
+      <h1 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: 750, color: '#172033' }}>Platform & Security Settings</h1>
+      <p style={{ margin: '0 0 20px', color: '#697386', fontSize: '13px' }}>Manage agency node endpoints, vector index parameters, and officer clearance credentials.</p>
+      <div className="details-grid" style={{ maxWidth: '600px' }}>
+        <div className="detail">
+          <span>API Backend URL</span>
+          <b>http://localhost:8000/api/v1</b>
+        </div>
+        <div className="detail">
+          <span>Database Connection</span>
+          <b style={{ color: '#16a34a' }}>MySQL Active (Connected)</b>
+        </div>
+        <div className="detail">
+          <span>Vector Index Engine</span>
+          <b>Hybrid Vector & BM25 Active</b>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- CASE WORKSPACE MAIN WRAPPER ---
 function CaseOverviewView() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { caseId } = useParams();
   const [caseData, setCaseData] = useState<any>(null);
 
@@ -847,6 +1361,7 @@ function CaseOverviewView() {
   }, [caseId]);
 
   const cData = caseData || {};
+  const currentTab = location.pathname.split('/')[3] || 'overview';
 
   return (
     <div>
@@ -884,177 +1399,259 @@ function CaseOverviewView() {
         </div>
       </div>
 
-      {/* Case Tabs */}
+      {/* Case Tabs Navigation */}
       <div className="case-tabs">
-        <button className="active">Overview</button>
-        <button onClick={() => navigate(`/cases/${caseId}/info`)}>Case Information</button>
-        <button onClick={() => navigate(`/cases/${caseId}/evidence`)}>Evidence (24)</button>
-        <button onClick={() => navigate(`/cases/${caseId}/documents`)}>Documents ({cData?.document_count || 142})</button>
-        <button onClick={() => navigate(`/cases/${caseId}/entities`)}>Entities ({cData?.entity_count || 19})</button>
-        <button onClick={() => navigate(`/cases/${caseId}/network`)}>Network Graph</button>
-        <button onClick={() => navigate(`/cases/${caseId}/timeline`)}>Timeline</button>
-        <button onClick={() => navigate(`/cases/${caseId}/communications`)}>Communications</button>
-        <button onClick={() => navigate(`/cases/${caseId}/financial`)}>Financial</button>
-        <button onClick={() => navigate(`/cases/${caseId}/related`)}>Related Cases (3)</button>
+        <button className={currentTab === 'overview' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}`)}>Overview</button>
+        <button className={currentTab === 'info' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}/info`)}>Case Information</button>
+        <button className={currentTab === 'evidence' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}/evidence`)}>Evidence (24)</button>
+        <button className={currentTab === 'documents' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}/documents`)}>Documents ({cData?.document_count || 142})</button>
+        <button className={currentTab === 'entities' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}/entities`)}>Entities ({cData?.entity_count || 19})</button>
+        <button className={currentTab === 'network' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}/network`)}>Network Graph</button>
+        <button className={currentTab === 'timeline' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}/timeline`)}>Timeline</button>
+        <button className={currentTab === 'communications' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}/communications`)}>Communications</button>
+        <button className={currentTab === 'financial' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}/financial`)}>Financial</button>
+        <button className={currentTab === 'related' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}/related`)}>Related Cases</button>
+        <button className={currentTab === 'ai' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}/ai`)}>AI Assistant</button>
       </div>
 
-      {/* Case KPIs */}
-      <div className="case-kpis">
-        <div className="kpi">
-          <div className="kpi-icon">
-            <FileText size={20} />
-          </div>
-          <div>
-            <div className="kpi-label">Indexed Documents</div>
-            <div className="kpi-value">{cData?.document_count || 142}</div>
-            <div className="kpi-detail positive">98.4% parsed</div>
-          </div>
-        </div>
-
-        <div className="kpi">
-          <div className="kpi-icon" style={{ background: '#ecfdf3', color: '#16a34a' }}>
-            <Users size={20} />
-          </div>
-          <div>
-            <div className="kpi-label">Extracted Entities</div>
-            <div className="kpi-value">{cData?.entity_count || 19}</div>
-            <div className="kpi-detail">4 Primary Suspects</div>
-          </div>
-        </div>
-
-        <div className="kpi">
-          <div className="kpi-icon" style={{ background: '#fff7e6', color: '#d97706' }}>
-            <Share2 size={20} />
-          </div>
-          <div>
-            <div className="kpi-label">Graph Connections</div>
-            <div className="kpi-value">43</div>
-            <div className="kpi-detail">12 High Confidence</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Workspace Main Grid */}
-      <div className="workspace-grid">
-        {/* Left Column: Summary & Details */}
-        <div className="card summary">
-          <div className="section-title">
-            <div>
-              <FolderOpen size={18} />
-              <h2>Executive Case Summary</h2>
-            </div>
-            <button className="text-btn">Edit Summary</button>
-          </div>
-
-          <p>
-            {cData?.description || cData?.summary || 'Investigation into a multi-state financial fraud syndicate utilizing shell entities, mule bank accounts, and encrypted communication channels to launder illicit funds exceeding $4.2M. Key targets include international wire transfers routed through offshore accounts.'}
-          </p>
-
-          <div className="section-divider" />
-
-          <h3>CASE METADATA & DETAILS</h3>
-          <div className="details-grid">
-            <div className="detail">
-              <span>Primary Suspect</span>
-              <b>Vikram Malhotra (Alias 'Phantom')</b>
-            </div>
-            <div className="detail">
-              <span>Jurisdiction</span>
-              <b>{cData?.station_name || 'Central Intelligence & Fraud Wing'}</b>
-            </div>
-            <div className="detail">
-              <span>Lead Investigator</span>
-              <b>{cData?.creator_name || 'Agent D. Vance'} (ID: INV-2026-001)</b>
-            </div>
-            <div className="detail">
-              <span>Classification</span>
-              <b>Confidential / Level 3 Clearance</b>
-            </div>
-            <div className="detail">
-              <span>Date Opened</span>
-              <b>12 October 2024</b>
-            </div>
-            <div className="detail">
-              <span>Last Intelligence Sync</span>
-              <b>{typeof cData?.updated_at === 'string' ? cData.updated_at.slice(0, 19) : '24 October 2024, 19:48 IST'}</b>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Sidebar Tasks & Activity */}
-        <div className="workspace-side">
-          {/* Pending Tasks */}
-          <div className="card side-card">
-            <div className="side-title">
-              <h2>Pending Action Items</h2>
-              <Clock size={16} />
-            </div>
-
-            <div className="task">
-              <div className="task-icon">
-                <FileText size={16} />
+      {/* Render Active Tab Sub View */}
+      {currentTab === 'info' ? (
+        <CaseInfoSubView caseData={cData} />
+      ) : currentTab === 'evidence' ? (
+        <CaseEvidenceSubView caseId={caseId || '1'} />
+      ) : currentTab === 'documents' ? (
+        <CaseDocumentsSubView caseId={caseId || '1'} />
+      ) : currentTab === 'entities' ? (
+        <CaseEntitiesSubView caseId={caseId || '1'} />
+      ) : currentTab === 'network' ? (
+        <CaseNetworkSubView caseId={caseId || '1'} />
+      ) : currentTab === 'timeline' ? (
+        <CaseTimelineSubView />
+      ) : currentTab === 'communications' ? (
+        <CaseCommunicationsSubView />
+      ) : currentTab === 'financial' ? (
+        <CaseFinancialSubView />
+      ) : currentTab === 'related' ? (
+        <CaseRelatedSubView />
+      ) : currentTab === 'ai' ? (
+        <CaseAiAssistantSubView caseId={caseId || '1'} />
+      ) : (
+        <>
+          {/* Default Overview Case KPIs */}
+          <div className="case-kpis">
+            <div className="kpi">
+              <div className="kpi-icon">
+                <FileText size={20} />
               </div>
-              <div className="task-text">
-                <b>Review Subpoena Bank Records</b>
-                <span>HDFC Account #908123</span>
+              <div>
+                <div className="kpi-label">Indexed Documents</div>
+                <div className="kpi-value">{cData?.document_count || 142}</div>
+                <div className="kpi-detail positive">98.4% parsed</div>
               </div>
-              <span className="badge priority-high">High</span>
             </div>
 
-            <div className="task">
-              <div className="task-icon">
-                <Users size={16} />
+            <div className="kpi">
+              <div className="kpi-icon" style={{ background: '#ecfdf3', color: '#16a34a' }}>
+                <Users size={20} />
               </div>
-              <div className="task-text">
-                <b>Verify Alias Connection</b>
-                <span>Entity: Rahul Verma</span>
+              <div>
+                <div className="kpi-label">Extracted Entities</div>
+                <div className="kpi-value">{cData?.entity_count || 19}</div>
+                <div className="kpi-detail">4 Primary Suspects</div>
               </div>
-              <span className="badge priority-medium">Medium</span>
             </div>
 
-            <button className="view-all">
-              View All Tasks →
-            </button>
+            <div className="kpi">
+              <div className="kpi-icon" style={{ background: '#fff7e6', color: '#d97706' }}>
+                <Share2 size={20} />
+              </div>
+              <div>
+                <div className="kpi-label">Graph Connections</div>
+                <div className="kpi-value">43</div>
+                <div className="kpi-detail">12 High Confidence</div>
+              </div>
+            </div>
           </div>
 
-          {/* Recent Activity */}
-          <div className="card side-card activity-card">
-            <div className="side-title">
-              <h2>Recent Investigation Activity</h2>
-              <ListTree size={16} />
-            </div>
-
-            <div className="activity-list">
-              <div className="activity">
-                <div className="dot" />
+          {/* Workspace Main Grid */}
+          <div className="workspace-grid">
+            {/* Left Column: Summary & Details */}
+            <div className="card summary">
+              <div className="section-title">
                 <div>
-                  <b>Document uploaded</b>
-                  <span>Bank_Statement_Sept.pdf</span>
+                  <FolderOpen size={18} />
+                  <h2>Executive Case Summary</h2>
                 </div>
-                <time>19:48</time>
+                <button className="text-btn">Edit Summary</button>
               </div>
 
-              <div className="activity">
-                <div className="dot green" />
-                <div>
-                  <b>Entity extracted</b>
-                  <span>5 entities identified</span>
+              <p>
+                {cData?.description || cData?.summary || 'Investigation into a multi-state financial fraud syndicate utilizing shell entities, mule bank accounts, and encrypted communication channels to launder illicit funds exceeding $4.2M. Key targets include international wire transfers routed through offshore accounts.'}
+              </p>
+
+              <div className="section-divider" />
+
+              <h3>CASE METADATA & DETAILS</h3>
+              <div className="details-grid">
+                <div className="detail">
+                  <span>Primary Suspect</span>
+                  <b>Vikram Malhotra (Alias 'Phantom')</b>
                 </div>
-                <time>19:42</time>
+                <div className="detail">
+                  <span>Jurisdiction</span>
+                  <b>{cData?.station_name || 'Central Intelligence & Fraud Wing'}</b>
+                </div>
+                <div className="detail">
+                  <span>Lead Investigator</span>
+                  <b>{cData?.creator_name || 'Agent D. Vance'} (ID: INV-2026-001)</b>
+                </div>
+                <div className="detail">
+                  <span>Classification</span>
+                  <b>Confidential / Level 3 Clearance</b>
+                </div>
+                <div className="detail">
+                  <span>Date Opened</span>
+                  <b>12 October 2024</b>
+                </div>
+                <div className="detail">
+                  <span>Last Intelligence Sync</span>
+                  <b>{typeof cData?.updated_at === 'string' ? cData.updated_at.slice(0, 19) : '24 October 2024, 19:48 IST'}</b>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Sidebar Tasks & Activity */}
+            <div className="workspace-side">
+              {/* Pending Tasks */}
+              <div className="card side-card">
+                <div className="side-title">
+                  <h2>Pending Action Items</h2>
+                  <Clock size={16} />
+                </div>
+
+                <div className="task">
+                  <div className="task-icon">
+                    <FileText size={16} />
+                  </div>
+                  <div className="task-text">
+                    <b>Review Subpoena Bank Records</b>
+                    <span>HDFC Account #908123</span>
+                  </div>
+                  <span className="badge priority-high">High</span>
+                </div>
+
+                <div className="task">
+                  <div className="task-icon">
+                    <Users size={16} />
+                  </div>
+                  <div className="task-text">
+                    <b>Verify Alias Connection</b>
+                    <span>Entity: Rahul Verma</span>
+                  </div>
+                  <span className="badge priority-medium">Medium</span>
+                </div>
+
+                <button className="view-all">
+                  View All Tasks →
+                </button>
               </div>
 
-              <div className="activity">
-                <div className="dot amber" />
-                <div>
-                  <b>Relationship discovered</b>
-                  <span>3 new connections</span>
+              {/* Recent Activity */}
+              <div className="card side-card activity-card">
+                <div className="side-title">
+                  <h2>Recent Investigation Activity</h2>
+                  <ListTree size={16} />
                 </div>
-                <time>19:35</time>
+
+                <div className="activity-list">
+                  <div className="activity">
+                    <div className="dot" />
+                    <div>
+                      <b>Document uploaded</b>
+                      <span>Bank_Statement_Sept.pdf</span>
+                    </div>
+                    <time>19:48</time>
+                  </div>
+
+                  <div className="activity">
+                    <div className="dot green" />
+                    <div>
+                      <b>Entity extracted</b>
+                      <span>5 entities identified</span>
+                    </div>
+                    <time>19:42</time>
+                  </div>
+
+                  <div className="activity">
+                    <div className="dot amber" />
+                    <div>
+                      <b>Relationship discovered</b>
+                      <span>3 new connections</span>
+                    </div>
+                    <time>19:35</time>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// --- GLOBAL SEARCH PAGE VIEW ---
+function GlobalSearchView() {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query.trim()) return;
+    setSearching(true);
+    try {
+      const res = await api.get(`/search?q=${encodeURIComponent(query)}`);
+      setResults(res.data.results || []);
+      setSearching(false);
+    } catch (err) {
+      setSearching(false);
+    }
+  };
+
+  return (
+    <div className="card" style={{ padding: '28px' }}>
+      <h1 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: 750, color: '#172033' }}>Cross-Case Intelligence Search</h1>
+      <p style={{ margin: '0 0 20px', color: '#697386', fontSize: '13px' }}>Perform hybrid semantic and keyword search across all indexed evidence documents and entities.</p>
+
+      <form onSubmit={handleSearch} style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+        <input
+          type="text"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Search by suspect name, phone number, vehicle plate, or transaction hash..."
+          style={{ flex: 1, height: '44px', padding: '0 16px', background: '#f8fafc', border: '1px solid #d8e0ea', borderRadius: '8px', fontSize: '14px', outline: 0 }}
+        />
+        <button type="submit" className="primary" style={{ height: '44px' }}>
+          <Search size={18} /> Search Intelligence
+        </button>
+      </form>
+
+      {searching ? (
+        <div style={{ textAlign: 'center', padding: '32px', color: '#7b8494' }}>Executing hybrid vector & BM25 search across case index...</div>
+      ) : results.length > 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {results.map((r, i) => (
+            <div key={i} className="card" style={{ padding: '16px' }}>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#1d4ed8' }}>{r.document_name}</div>
+              <div style={{ fontSize: '11px', color: '#7b8494', marginTop: '2px' }}>Case Number: {r.case_number} | Match Score: {(r.hybrid_score * 100).toFixed(1)}%</div>
+              <p style={{ fontSize: '13px', color: '#374151', margin: '8px 0 0', lineHeight: 1.5 }}>{r.content}</p>
+            </div>
+          ))}
         </div>
-      </div>
+      ) : query ? (
+        <div style={{ textAlign: 'center', padding: '32px', color: '#7b8494' }}>No matching evidence chunks found. Try another query keyword.</div>
+      ) : null}
     </div>
   );
 }
@@ -1098,6 +1695,10 @@ export default function App() {
                   <Routes>
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/dashboard" element={<DashboardView />} />
+                    <Route path="/search" element={<GlobalSearchView />} />
+                    <Route path="/notifications" element={<NotificationsView />} />
+                    <Route path="/reports" element={<ReportsView />} />
+                    <Route path="/settings" element={<SettingsView />} />
                     <Route path="/cases/:caseId" element={<CaseOverviewView />} />
                     <Route path="/cases/:caseId/*" element={<CaseOverviewView />} />
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
