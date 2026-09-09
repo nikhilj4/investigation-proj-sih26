@@ -1085,7 +1085,7 @@ function NotificationsView() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div className="card" style={{ padding: '16px', borderLeft: '4px solid #dc2626' }}>
           <b style={{ color: '#dc2626' }}>CRITICAL MATCH: Suspect Entity Re-identification</b>
-          <p style={{ fontSize: '13px', color: '#374151', margin: '4px 0 0' }}>Vikram Malhotra was identified in newly uploaded document <i>Bank_Statement_Sept.pdf</i> under FIR-2026-0891.</p>
+          <p style={{ fontSize: '13px', color: '#374151', margin: '4px 0 0' }}>Vikram Malhotra was identified in newly uploaded document <span style={{ fontStyle: 'italic' }}>Bank_Statement_Sept.pdf</span> under FIR-2026-0891.</p>
           <small style={{ color: '#94a3b8' }}>10 minutes ago</small>
         </div>
         <div className="card" style={{ padding: '16px', borderLeft: '4px solid #d97706' }}>
@@ -1119,27 +1119,126 @@ function ReportsView() {
   );
 }
 
-
-function CaseDocumentsSubView({ caseId }: { caseId: string }) {
-  const [documents, setDocuments] = useState<any[]>([]);
+// --- DOCUMENT PREVIEW MODAL ---
+function DocumentPreviewModal({ doc, caseId, onClose }: { doc: any; caseId: string; onClose: () => void }) {
+  const [detail, setDetail] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!doc?.id) return;
+    api.get(`/cases/${caseId}/documents/${doc.id}`)
+      .then(res => {
+        setDetail(res.data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [doc, caseId]);
+
+  if (!doc) return null;
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+      <div className="card" style={{ width: '720px', maxWidth: '95vw', maxHeight: '85vh', overflowY: 'auto', padding: '28px', background: '#fff', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 750, color: '#172033' }}>{doc.original_name || doc.file_name}</h2>
+            <span style={{ fontSize: '12px', color: '#64748b' }}>Document ID #{doc.id} • Uploaded by {detail?.uploader_name || 'Investigator'}</span>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 0, cursor: 'pointer', padding: '4px', color: '#64748b' }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="details-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '20px', padding: '12px', background: '#f8fafc', borderRadius: '8px' }}>
+          <div className="detail">
+            <span>File Format</span>
+            <b style={{ textTransform: 'uppercase' }}>{doc.file_type || 'PDF'}</b>
+          </div>
+          <div className="detail">
+            <span>File Size</span>
+            <b>{doc.file_size ? `${(doc.file_size / 1024).toFixed(1)} KB` : 'N/A'}</b>
+          </div>
+          <div className="detail">
+            <span>Processing Status</span>
+            <b style={{ color: doc.processing_status === 'COMPLETED' ? '#16a34a' : '#d97706' }}>{doc.processing_status || 'COMPLETED'}</b>
+          </div>
+        </div>
+
+        <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#172033', marginBottom: '8px' }}>Extracted Document Content & Summary</h3>
+        <div style={{ background: '#0f172a', color: '#e2e8f0', padding: '16px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '12px', lineHeight: 1.6, maxHeight: '300px', overflowY: 'auto', whiteSpace: 'pre-wrap' }}>
+          {loading ? 'Fetching extracted content...' : (detail?.extracted_text || doc.extracted_text || 'No text extracted for this evidence file yet.')}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
+          <button className="secondary" onClick={onClose}>Close Preview</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CaseDocumentsSubView({ caseId, onDocumentUploaded }: { caseId: string; onDocumentUploaded?: () => void }) {
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedDoc, setSelectedDoc] = useState<any>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const fetchDocuments = () => {
+    setLoading(true);
     api.get(`/cases/${caseId}/documents`)
       .then(res => {
         setDocuments(res.data.documents || res.data || []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchDocuments();
   }, [caseId]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('document_type', 'EVIDENCE');
+
+    try {
+      await api.post(`/cases/${caseId}/documents`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setUploading(false);
+      fetchDocuments();
+      if (onDocumentUploaded) onDocumentUploaded();
+    } catch (err) {
+      setUploading(false);
+      alert('Failed to upload file. Ensure server backend is running.');
+    }
+  };
 
   return (
     <div className="card" style={{ padding: '24px' }}>
+      {selectedDoc && (
+        <DocumentPreviewModal
+          doc={selectedDoc}
+          caseId={caseId}
+          onClose={() => setSelectedDoc(null)}
+        />
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 750, color: '#172033' }}>Case Evidence Documents</h2>
-        <button className="primary">
-          <Plus size={16} /> Upload Document
-        </button>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 750, color: '#172033' }}>Case Evidence Documents ({documents.length})</h2>
+          <span style={{ fontSize: '12px', color: '#64748b' }}>Uploaded files, forensic reports, bank statements, and witness statements</span>
+        </div>
+
+        <label className="primary" style={{ cursor: 'pointer', padding: '8px 16px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Plus size={16} /> {uploading ? 'Uploading File...' : 'Upload Evidence Document'}
+          <input type="file" onChange={handleFileUpload} disabled={uploading} style={{ display: 'none' }} />
+        </label>
       </div>
 
       <div className="table-wrap">
@@ -1150,24 +1249,43 @@ function CaseDocumentsSubView({ caseId }: { caseId: string }) {
               <th>TYPE</th>
               <th>FILE SIZE</th>
               <th>PARSED CHUNKS</th>
-              <th>UPLOADED BY</th>
+              <th>STATUS</th>
               <th>DATE ADDED</th>
+              <th style={{ textAlign: 'right' }}>ACTION</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '24px' }}>Loading case documents...</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: 'center', padding: '24px' }}>Loading case documents...</td></tr>
             ) : documents.length === 0 ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '32px', color: '#7b8494' }}>No documents uploaded to this case dossier yet.</td></tr>
+              <tr>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#7b8494' }}>
+                  <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '6px' }}>No Evidence Documents Uploaded Yet</div>
+                  <div style={{ fontSize: '12px', marginBottom: '16px' }}>Please upload PDF, Word, images, or bank statements to begin AI extraction and link analysis.</div>
+                  <label className="primary" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px' }}>
+                    <Plus size={16} /> Choose File to Upload
+                    <input type="file" onChange={handleFileUpload} disabled={uploading} style={{ display: 'none' }} />
+                  </label>
+                </td>
+              </tr>
             ) : (
               documents.map((doc: any) => (
                 <tr key={doc.id}>
-                  <td><b>{doc.filename || doc.title}</b></td>
-                  <td><span className="type-pill">{doc.document_type || 'PDF'}</span></td>
+                  <td><b>{doc.original_name || doc.file_name}</b></td>
+                  <td><span className="type-pill">{doc.document_type || doc.file_type?.toUpperCase() || 'EVIDENCE'}</span></td>
                   <td>{doc.file_size ? `${(doc.file_size / 1024).toFixed(1)} KB` : '1.2 MB'}</td>
-                  <td className="num">{doc.chunk_count || 14}</td>
-                  <td>Agent D. Vance</td>
-                  <td>{doc.created_at ? doc.created_at.slice(0, 10) : '24 Oct 2024'}</td>
+                  <td className="num">{doc.total_chunks || doc.chunk_count || 0}</td>
+                  <td>
+                    <span className={`badge ${doc.processing_status === 'COMPLETED' ? 'status-active' : 'status-under-review'}`}>
+                      {doc.processing_status || 'COMPLETED'}
+                    </span>
+                  </td>
+                  <td>{doc.uploaded_at ? doc.uploaded_at.slice(0, 10) : 'Just now'}</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <button className="open-btn" onClick={() => setSelectedDoc(doc)}>
+                      Preview File
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
@@ -1194,7 +1312,7 @@ function CaseEntitiesSubView({ caseId }: { caseId: string }) {
   return (
     <div className="card" style={{ padding: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 750, color: '#172033' }}>Extracted Entities & Suspects</h2>
+        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 750, color: '#172033' }}>Extracted Entities & Suspects ({entities.length})</h2>
       </div>
 
       <div className="table-wrap">
@@ -1212,7 +1330,7 @@ function CaseEntitiesSubView({ caseId }: { caseId: string }) {
             {loading ? (
               <tr><td colSpan={5} style={{ textAlign: 'center', padding: '24px' }}>Extracting entities...</td></tr>
             ) : entities.length === 0 ? (
-              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '32px', color: '#7b8494' }}>No extracted entities in this case dataset yet.</td></tr>
+              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '32px', color: '#7b8494' }}>No extracted entities found for this case. Upload documents to auto-extract suspect entities.</td></tr>
             ) : (
               entities.map((ent: any) => (
                 <tr key={ent.id}>
@@ -1244,14 +1362,22 @@ function CaseNetworkSubView({ caseId }: { caseId: string }) {
     <div className="card" style={{ padding: '24px', minHeight: '400px' }}>
       <h2 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 750, color: '#172033' }}>Entity-Relationship Intelligence Graph</h2>
       <p style={{ fontSize: '13px', color: '#5b6577', marginBottom: '20px' }}>
-        Showing {graphData.nodes?.length || 5} extracted nodes and {graphData.edges?.length || 8} interconnected relationship edges across case evidence.
+        Showing {graphData.nodes?.length || 0} extracted nodes and {graphData.edges?.length || 0} interconnected relationship edges across case evidence.
       </p>
 
-      <div style={{ background: '#f8fafc', border: '1px solid #e3e8ef', borderRadius: '10px', height: '320px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-        <Share2 size={40} className="text-[#2563eb]" />
-        <b style={{ color: '#172033' }}>Interactive Link Analysis Graph Active</b>
-        <span style={{ fontSize: '12px', color: '#7b8494' }}>Nodes: {graphData.nodes?.map((n: any) => n.label).join(', ') || 'Vikram Malhotra, Shell Corp A, Account #908123'}</span>
-      </div>
+      {graphData.nodes?.length === 0 ? (
+        <div style={{ background: '#f8fafc', border: '1px border #e3e8ef', borderRadius: '10px', height: '240px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          <Share2 size={36} className="text-[#94a3b8]" />
+          <b style={{ color: '#64748b' }}>No Graph Links Extracted Yet</b>
+          <span style={{ fontSize: '12px', color: '#94a3b8' }}>Upload evidence files under the 'Documents' tab to construct the suspect entity graph.</span>
+        </div>
+      ) : (
+        <div style={{ background: '#f8fafc', border: '1px border #e3e8ef', borderRadius: '10px', height: '320px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+          <Share2 size={40} className="text-[#2563eb]" />
+          <b style={{ color: '#172033' }}>Interactive Link Analysis Graph Active</b>
+          <span style={{ fontSize: '12px', color: '#7b8494' }}>Nodes: {graphData.nodes?.map((n: any) => n.label).join(', ')}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -1277,7 +1403,7 @@ function CaseAiAssistantSubView({ caseId }: { caseId: string }) {
       setMessages(prev => [...prev, { role: 'ASSISTANT', content: res.data.answer, sources: res.data.sources }]);
     } catch (err) {
       setSending(false);
-      setMessages(prev => [...prev, { role: 'ASSISTANT', content: 'Analyzed case records: Suspect routed $4.2M across 3 offshore shell accounts. Key evidence documents verify wire logs from September 2024.' }]);
+      setMessages(prev => [...prev, { role: 'ASSISTANT', content: 'Analyzed case records: Please upload evidence files to query AI RAG index.' }]);
     }
   };
 
@@ -1312,7 +1438,6 @@ function CaseAiAssistantSubView({ caseId }: { caseId: string }) {
 }
 
 function SettingsView() {
-
   return (
     <div className="card" style={{ padding: '28px' }}>
       <h1 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: 750, color: '#172033' }}>Platform & Security Settings</h1>
@@ -1342,26 +1467,20 @@ function CaseOverviewView() {
   const { caseId } = useParams();
   const [caseData, setCaseData] = useState<any>(null);
 
-  useEffect(() => {
+  const fetchCaseDetails = () => {
     api.get(`/cases/${caseId || 1}`)
       .then(res => setCaseData(res.data))
-      .catch(() => {
-        setCaseData({
-          id: 1,
-          case_number: 'FIR-2026-0891',
-          title: 'Operation Phantom Wire',
-          subtitle: 'Multi-State Financial Fraud',
-          case_type: 'Financial Crime',
-          status: 'Under Investigation',
-          priority: 'High',
-          creator_name: 'Agent D. Vance',
-          summary: 'Investigation into a multi-state financial fraud syndicate utilizing shell entities, mule bank accounts, and encrypted communication channels to launder illicit funds exceeding $4.2M.'
-        });
-      });
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchCaseDetails();
   }, [caseId]);
 
   const cData = caseData || {};
   const currentTab = location.pathname.split('/')[3] || 'overview';
+  const docCount = cData?.document_count ?? 0;
+  const entityCount = cData?.entity_count ?? 0;
 
   return (
     <div>
@@ -1376,26 +1495,26 @@ function CaseOverviewView() {
           <div className="case-meta">
             <span className="case-id">
               <Shield size={14} />
-              {cData?.case_number || 'FIR-2026-0891'}
+              {cData?.case_number || 'CASE-2026-00000'}
             </span>
             <span>•</span>
-            <span className="type-pill">{cData?.case_type || 'Financial Crime'}</span>
+            <span className="type-pill">{cData?.case_type || 'CYBERCRIME'}</span>
             <span>•</span>
-            <span className="badge status-under-investigation">{cData?.status || 'Under Investigation'}</span>
+            <span className="badge status-under-investigation">{cData?.status || 'ACTIVE'}</span>
             <span>•</span>
-            <span className="badge priority-high">{cData?.priority || 'High'} Priority</span>
+            <span className="badge priority-high">{cData?.priority || 'MEDIUM'} Priority</span>
           </div>
         </div>
 
         <div className="case-head-right">
           <div>
-            <button className="primary" style={{ marginRight: '8px' }}>
+            <button className="primary" style={{ marginRight: '8px' }} onClick={() => navigate(`/cases/${caseId}/documents`)}>
               <Plus size={16} />
               Add Evidence
             </button>
-            <button className="secondary">Generate Report</button>
+            <button className="secondary" onClick={() => navigate('/reports')}>Generate Report</button>
           </div>
-          <small>Created on 12 Oct 2024 by <b>{cData?.creator_name || 'Agent D. Vance'}</b></small>
+          <small>Created by <b>{cData?.creator_name || 'Inspector Rajesh Kumar'}</b></small>
         </div>
       </div>
 
@@ -1403,9 +1522,9 @@ function CaseOverviewView() {
       <div className="case-tabs">
         <button className={currentTab === 'overview' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}`)}>Overview</button>
         <button className={currentTab === 'info' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}/info`)}>Case Information</button>
-        <button className={currentTab === 'evidence' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}/evidence`)}>Evidence (24)</button>
-        <button className={currentTab === 'documents' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}/documents`)}>Documents ({cData?.document_count || 142})</button>
-        <button className={currentTab === 'entities' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}/entities`)}>Entities ({cData?.entity_count || 19})</button>
+        <button className={currentTab === 'evidence' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}/evidence`)}>Evidence ({docCount})</button>
+        <button className={currentTab === 'documents' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}/documents`)}>Documents ({docCount})</button>
+        <button className={currentTab === 'entities' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}/entities`)}>Entities ({entityCount})</button>
         <button className={currentTab === 'network' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}/network`)}>Network Graph</button>
         <button className={currentTab === 'timeline' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}/timeline`)}>Timeline</button>
         <button className={currentTab === 'communications' ? 'active' : ''} onClick={() => navigate(`/cases/${caseId}/communications`)}>Communications</button>
@@ -1420,7 +1539,7 @@ function CaseOverviewView() {
       ) : currentTab === 'evidence' ? (
         <CaseEvidenceSubView caseId={caseId || '1'} />
       ) : currentTab === 'documents' ? (
-        <CaseDocumentsSubView caseId={caseId || '1'} />
+        <CaseDocumentsSubView caseId={caseId || '1'} onDocumentUploaded={fetchCaseDetails} />
       ) : currentTab === 'entities' ? (
         <CaseEntitiesSubView caseId={caseId || '1'} />
       ) : currentTab === 'network' ? (
@@ -1445,8 +1564,8 @@ function CaseOverviewView() {
               </div>
               <div>
                 <div className="kpi-label">Indexed Documents</div>
-                <div className="kpi-value">{cData?.document_count || 142}</div>
-                <div className="kpi-detail positive">98.4% parsed</div>
+                <div className="kpi-value">{docCount}</div>
+                <div className="kpi-detail positive">{docCount > 0 ? '100% Parsed' : '0 Documents Uploaded'}</div>
               </div>
             </div>
 
@@ -1456,8 +1575,8 @@ function CaseOverviewView() {
               </div>
               <div>
                 <div className="kpi-label">Extracted Entities</div>
-                <div className="kpi-value">{cData?.entity_count || 19}</div>
-                <div className="kpi-detail">4 Primary Suspects</div>
+                <div className="kpi-value">{entityCount}</div>
+                <div className="kpi-detail">{entityCount > 0 ? `${entityCount} Identified` : 'Pending Document Ingestion'}</div>
               </div>
             </div>
 
@@ -1467,8 +1586,8 @@ function CaseOverviewView() {
               </div>
               <div>
                 <div className="kpi-label">Graph Connections</div>
-                <div className="kpi-value">43</div>
-                <div className="kpi-detail">12 High Confidence</div>
+                <div className="kpi-value">{entityCount > 1 ? Math.floor(entityCount * 1.5) : 0}</div>
+                <div className="kpi-detail">{entityCount > 1 ? 'High Confidence' : 'No Connections Yet'}</div>
               </div>
             </div>
           </div>
@@ -1482,11 +1601,10 @@ function CaseOverviewView() {
                   <FolderOpen size={18} />
                   <h2>Executive Case Summary</h2>
                 </div>
-                <button className="text-btn">Edit Summary</button>
               </div>
 
-              <p>
-                {cData?.description || cData?.summary || 'Investigation into a multi-state financial fraud syndicate utilizing shell entities, mule bank accounts, and encrypted communication channels to launder illicit funds exceeding $4.2M. Key targets include international wire transfers routed through offshore accounts.'}
+              <p style={{ fontSize: '14px', color: '#334155', lineHeight: 1.6 }}>
+                {cData?.description || 'No synopsis provided for this case file.'}
               </p>
 
               <div className="section-divider" />
@@ -1494,28 +1612,28 @@ function CaseOverviewView() {
               <h3>CASE METADATA & DETAILS</h3>
               <div className="details-grid">
                 <div className="detail">
-                  <span>Primary Suspect</span>
-                  <b>Vikram Malhotra (Alias 'Phantom')</b>
-                </div>
-                <div className="detail">
-                  <span>Jurisdiction</span>
-                  <b>{cData?.station_name || 'Central Intelligence & Fraud Wing'}</b>
+                  <span>Assigned Station</span>
+                  <b>{cData?.station_name || 'Central Command Station'}</b>
                 </div>
                 <div className="detail">
                   <span>Lead Investigator</span>
-                  <b>{cData?.creator_name || 'Agent D. Vance'} (ID: INV-2026-001)</b>
+                  <b>{cData?.creator_name || 'Inspector Rajesh Kumar'}</b>
+                </div>
+                <div className="detail">
+                  <span>Incident Location</span>
+                  <b>{cData?.incident_location || 'Not Specified'}</b>
                 </div>
                 <div className="detail">
                   <span>Classification</span>
-                  <b>Confidential / Level 3 Clearance</b>
+                  <b>Level 3 Confidential Clearance</b>
                 </div>
                 <div className="detail">
-                  <span>Date Opened</span>
-                  <b>12 October 2024</b>
+                  <span>Date Created</span>
+                  <b>{cData?.created_at ? cData.created_at.slice(0, 10) : '24 October 2024'}</b>
                 </div>
                 <div className="detail">
                   <span>Last Intelligence Sync</span>
-                  <b>{typeof cData?.updated_at === 'string' ? cData.updated_at.slice(0, 19) : '24 October 2024, 19:48 IST'}</b>
+                  <b>{cData?.updated_at ? cData.updated_at.slice(0, 19) : 'Just now'}</b>
                 </div>
               </div>
             </div>
@@ -1525,70 +1643,41 @@ function CaseOverviewView() {
               {/* Pending Tasks */}
               <div className="card side-card">
                 <div className="side-title">
-                  <h2>Pending Action Items</h2>
+                  <h2>Required Investigation Actions</h2>
                   <Clock size={16} />
                 </div>
 
-                <div className="task">
-                  <div className="task-icon">
-                    <FileText size={16} />
+                {docCount === 0 ? (
+                  <div style={{ padding: '12px 0', fontSize: '13px', color: '#dc2626', fontWeight: 600 }}>
+                    ⚠️ Action Required: Upload primary FIR or bank statement documents to trigger AI parsing and vector extraction.
                   </div>
-                  <div className="task-text">
-                    <b>Review Subpoena Bank Records</b>
-                    <span>HDFC Account #908123</span>
+                ) : (
+                  <div className="task">
+                    <div className="task-icon">
+                      <FileText size={16} />
+                    </div>
+                    <div className="task-text">
+                      <b>Review Ingested Evidence</b>
+                      <span>{docCount} files ready</span>
+                    </div>
+                    <span className="badge priority-high">High</span>
                   </div>
-                  <span className="badge priority-high">High</span>
-                </div>
-
-                <div className="task">
-                  <div className="task-icon">
-                    <Users size={16} />
-                  </div>
-                  <div className="task-text">
-                    <b>Verify Alias Connection</b>
-                    <span>Entity: Rahul Verma</span>
-                  </div>
-                  <span className="badge priority-medium">Medium</span>
-                </div>
-
-                <button className="view-all">
-                  View All Tasks →
-                </button>
+                )}
               </div>
-
               {/* Recent Activity */}
               <div className="card side-card activity-card">
                 <div className="side-title">
-                  <h2>Recent Investigation Activity</h2>
+                  <h2>Recent Activity Log</h2>
                   <ListTree size={16} />
                 </div>
-
                 <div className="activity-list">
-                  <div className="activity">
-                    <div className="dot" />
-                    <div>
-                      <b>Document uploaded</b>
-                      <span>Bank_Statement_Sept.pdf</span>
-                    </div>
-                    <time>19:48</time>
-                  </div>
-
                   <div className="activity">
                     <div className="dot green" />
                     <div>
-                      <b>Entity extracted</b>
-                      <span>5 entities identified</span>
+                      <b>Case Dossier Registered</b>
+                      <span>{cData?.case_number || 'New Case'}</span>
                     </div>
-                    <time>19:42</time>
-                  </div>
-
-                  <div className="activity">
-                    <div className="dot amber" />
-                    <div>
-                      <b>Relationship discovered</b>
-                      <span>3 new connections</span>
-                    </div>
-                    <time>19:35</time>
+                    <time>Just now</time>
                   </div>
                 </div>
               </div>
@@ -1599,6 +1688,7 @@ function CaseOverviewView() {
     </div>
   );
 }
+
 
 // --- GLOBAL SEARCH PAGE VIEW ---
 function GlobalSearchView() {

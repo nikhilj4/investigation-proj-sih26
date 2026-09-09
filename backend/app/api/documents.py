@@ -144,6 +144,40 @@ def list_documents(
     return DocumentListResponse(documents=result, total=len(result))
 
 
+@router.get("/{document_id}")
+def get_document_detail(
+    case_id: int,
+    document_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get document details including extracted text and summary snippet."""
+    doc = db.query(Document).filter(Document.id == document_id, Document.case_id == case_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    uploader = db.query(User).filter(User.id == doc.uploaded_by).first()
+    
+    return {
+        "id": doc.id,
+        "case_id": doc.case_id,
+        "file_name": doc.file_name,
+        "original_name": doc.original_name,
+        "file_type": doc.file_type,
+        "file_size": doc.file_size,
+        "document_type": doc.document_type,
+        "processing_status": doc.processing_status,
+        "processing_error": doc.processing_error,
+        "total_pages": doc.total_pages,
+        "total_chunks": doc.total_chunks,
+        "extracted_text": doc.extracted_text or "No text content extracted yet.",
+        "uploader_name": uploader.name if uploader else None,
+        "uploaded_at": doc.uploaded_at,
+        "processed_at": doc.processed_at,
+    }
+
+
+
 @router.delete("/{document_id}", status_code=204)
 def delete_document(
     case_id: int,
