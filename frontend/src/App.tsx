@@ -816,23 +816,22 @@ function CaseInfoSubView({ caseData }: { caseData: any }) {
 }
 
 function CaseEvidenceSubView({ caseId }: { caseId: string }) {
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const formData = new FormData();
-      formData.append('file', file);
-      api.post(`/cases/${caseId}/upload`, formData);
-    }
-  };
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get(`/cases/${caseId}/documents`)
+      .then(res => {
+        setDocuments(res.data.documents || res.data || []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [caseId]);
 
   return (
     <div className="card" style={{ padding: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 750, color: '#172033' }}>Chain of Custody Evidence Items (24)</h2>
-        <label className="primary" style={{ cursor: 'pointer', padding: '8px 16px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Plus size={16} /> Log New Evidence
-          <input type="file" onChange={handleUpload} style={{ display: 'none' }} />
-        </label>
+        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 750, color: '#172033' }}>Chain of Custody Evidence Items ({documents.length})</h2>
       </div>
       <div className="table-wrap">
         <table>
@@ -841,36 +840,32 @@ function CaseEvidenceSubView({ caseId }: { caseId: string }) {
               <th>EVIDENCE ID</th>
               <th>ITEM DESCRIPTION</th>
               <th>TYPE</th>
-              <th>LOCATION FOUND</th>
-              <th>SEIZED BY</th>
+              <th>FILE SIZE</th>
+              <th>PARSED CHUNKS</th>
               <th>CUSTODY STATUS</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td><b>EVD-8891-01</b></td>
-              <td>Encrypted Mobile Handset (iPhone 14 Pro)</td>
-              <td><span className="type-pill">Digital Device</span></td>
-              <td>Suspect Premises A</td>
-              <td>Inspector Rajesh Kumar</td>
-              <td><span className="badge status-active">In Vault</span></td>
-            </tr>
-            <tr>
-              <td><b>EVD-8891-02</b></td>
-              <td>Hard Drive - Ledger Dump (4TB)</td>
-              <td><span className="type-pill">Hardware Storage</span></td>
-              <td>Shell Office Cyber hub</td>
-              <td>Agent D. Vance</td>
-              <td><span className="badge priority-high">Forensic Lab</span></td>
-            </tr>
-            <tr>
-              <td><b>EVD-8891-03</b></td>
-              <td>Forged Bank Stamp & Letterheads</td>
-              <td><span className="type-pill">Physical Document</span></td>
-              <td>Branch Office #4</td>
-              <td>S. Officer Miller</td>
-              <td><span className="badge status-active">In Vault</span></td>
-            </tr>
+            {loading ? (
+              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '24px' }}>Loading evidence vault items...</td></tr>
+            ) : documents.length === 0 ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '36px', color: '#7b8494' }}>
+                  No logged evidence items in vault yet. Upload evidence files under Documents to register chain of custody.
+                </td>
+              </tr>
+            ) : (
+              documents.map((doc: any, index: number) => (
+                <tr key={doc.id}>
+                  <td><b>EVD-2026-0{index + 1}</b></td>
+                  <td>{doc.original_name || doc.file_name}</td>
+                  <td><span className="type-pill">{doc.document_type || doc.file_type?.toUpperCase() || 'EVIDENCE'}</span></td>
+                  <td>{doc.file_size ? `${(doc.file_size / 1024).toFixed(1)} KB` : 'N/A'}</td>
+                  <td className="num">{doc.total_chunks || 0}</td>
+                  <td><span className="badge status-active">Vault Locked & Indexed</span></td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -878,25 +873,15 @@ function CaseEvidenceSubView({ caseId }: { caseId: string }) {
   );
 }
 
-function CaseTimelineSubView() {
+function CaseTimelineSubView({ caseData }: { caseData?: any }) {
   return (
     <div className="card" style={{ padding: '24px' }}>
       <h2 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 750, color: '#172033' }}>Chronological Investigation Timeline</h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderLeft: '2px solid #e2e8f0', paddingLeft: '20px', marginLeft: '10px' }}>
         <div>
-          <span style={{ fontSize: '11px', fontWeight: 700, color: '#2563eb' }}>24 OCT 2024 • 19:48 IST</span>
-          <h4 style={{ margin: '4px 0 2px', fontSize: '14px', color: '#172033' }}>Subpoena Financial Records Ingested</h4>
-          <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Bank statements ingested and parsed into vector chunks. 14 new transactions flagged.</p>
-        </div>
-        <div>
-          <span style={{ fontSize: '11px', fontWeight: 700, color: '#2563eb' }}>18 OCT 2024 • 11:20 IST</span>
-          <h4 style={{ margin: '4px 0 2px', fontSize: '14px', color: '#172033' }}>Primary Suspect Identified</h4>
-          <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Vikram Malhotra linked to Shell Company A via matching passport record in FIR registry.</p>
-        </div>
-        <div>
-          <span style={{ fontSize: '11px', fontWeight: 700, color: '#2563eb' }}>12 OCT 2024 • 09:00 IST</span>
-          <h4 style={{ margin: '4px 0 2px', fontSize: '14px', color: '#172033' }}>Case File Formally Registered</h4>
-          <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>FIR registered by Inspector Rajesh Kumar under Cybercrime & Financial Fraud Unit.</p>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#2563eb' }}>{caseData?.created_at ? caseData.created_at.slice(0, 10) : 'TODAY'}</span>
+          <h4 style={{ margin: '4px 0 2px', fontSize: '14px', color: '#172033' }}>Case File Registered</h4>
+          <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Formal FIR case file registered in system by {caseData?.creator_name || 'Assigned Officer'}.</p>
         </div>
       </div>
     </div>
@@ -921,20 +906,9 @@ function CaseCommunicationsSubView() {
           </thead>
           <tbody>
             <tr>
-              <td><b>CDR-00912</b></td>
-              <td>+91 98765 43210</td>
-              <td>+91 91234 56789</td>
-              <td>4m 12s</td>
-              <td>23 Oct 2024</td>
-              <td><span className="badge priority-critical">crypto transfer, wire</span></td>
-            </tr>
-            <tr>
-              <td><b>CDR-00915</b></td>
-              <td>+91 98765 43210</td>
-              <td>+91 99887 76655</td>
-              <td>12m 45s</td>
-              <td>22 Oct 2024</td>
-              <td><span className="badge priority-medium">invoice #402</span></td>
+              <td colSpan={6} style={{ textAlign: 'center', padding: '36px', color: '#7b8494' }}>
+                No CDR or intercepted communications uploaded for this case file yet.
+              </td>
             </tr>
           </tbody>
         </table>
@@ -947,20 +921,6 @@ function CaseFinancialSubView() {
   return (
     <div className="card" style={{ padding: '24px' }}>
       <h2 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 750, color: '#172033' }}>Financial Audit & Laundering Trace</h2>
-      <div className="details-grid" style={{ marginBottom: '20px' }}>
-        <div className="detail">
-          <span>Total Fraud Volume</span>
-          <b style={{ color: '#dc2626' }}>$4,250,000 USD</b>
-        </div>
-        <div className="detail">
-          <span>Traced Accounts</span>
-          <b>14 Accounts (4 Banks)</b>
-        </div>
-        <div className="detail">
-          <span>Frozen Capital</span>
-          <b style={{ color: '#16a34a' }}>$1,120,000 USD</b>
-        </div>
-      </div>
       <div className="table-wrap">
         <table>
           <thead>
@@ -975,20 +935,9 @@ function CaseFinancialSubView() {
           </thead>
           <tbody>
             <tr>
-              <td><b>TX-990123</b></td>
-              <td>HDFC Shell Corp A (#908123)</td>
-              <td>Offshore Cayman Crypto Exchange</td>
-              <td>$450,000</td>
-              <td>24 Oct 2024 14:22</td>
-              <td><span className="badge priority-critical">High Risk (98%)</span></td>
-            </tr>
-            <tr>
-              <td><b>TX-990124</b></td>
-              <td>Axis Bank Mule (#112049)</td>
-              <td>HDFC Shell Corp A (#908123)</td>
-              <td>$120,000</td>
-              <td>23 Oct 2024 09:15</td>
-              <td><span className="badge priority-high">Medium Risk (74%)</span></td>
+              <td colSpan={6} style={{ textAlign: 'center', padding: '36px', color: '#7b8494' }}>
+                No financial transactions ingested for this case file yet. Upload bank statement PDFs under Documents to extract wire traces.
+              </td>
             </tr>
           </tbody>
         </table>
@@ -1000,22 +949,9 @@ function CaseFinancialSubView() {
 function CaseRelatedSubView() {
   return (
     <div className="card" style={{ padding: '24px' }}>
-      <h2 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 750, color: '#172033' }}>Cross-Jurisdictional Linked Cases (3)</h2>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <div className="card" style={{ padding: '16px', border: '1px solid #e2e8f0' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <b style={{ color: '#2563eb' }}>FIR-2026-0723: Metro Nexus Fraud Ring</b>
-            <span className="badge priority-high">Shared Suspect: Vikram Malhotra</span>
-          </div>
-          <p style={{ fontSize: '12px', color: '#64748b', margin: '6px 0 0' }}>Overlapping mule account #908123 detected across Mumbai and Delhi branches.</p>
-        </div>
-        <div className="card" style={{ padding: '16px', border: '1px solid #e2e8f0' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <b style={{ color: '#2563eb' }}>FIR-2026-0611: Silent Route Crypto Syndicate</b>
-            <span className="badge priority-medium">Shared Phone Target</span>
-          </div>
-          <p style={{ fontSize: '12px', color: '#64748b', margin: '6px 0 0' }}>Same encrypted Telegram channel handle found in device forensics dump.</p>
-        </div>
+      <h2 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 750, color: '#172033' }}>Cross-Jurisdictional Linked Cases</h2>
+      <div style={{ textAlign: 'center', padding: '36px', color: '#7b8494', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+        No cross-jurisdictional matches detected yet. Automated link analysis triggers upon document and suspect entity extraction.
       </div>
     </div>
   );
@@ -1489,7 +1425,7 @@ function CaseOverviewView() {
       ) : currentTab === 'network' ? (
         <CaseNetworkSubView caseId={caseId || '1'} />
       ) : currentTab === 'timeline' ? (
-        <CaseTimelineSubView />
+        <CaseTimelineSubView caseData={cData} />
       ) : currentTab === 'communications' ? (
         <CaseCommunicationsSubView />
       ) : currentTab === 'financial' ? (
