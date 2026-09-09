@@ -1,0 +1,38 @@
+# Dependencies
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+venv/
+.venv/
+env/
+
+# Environment
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads
+storage/uploads/*
+!storage/uploads/.gitkeep
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.cache/
+
+# Logs
+*.log
+
+# Database
+*.sql.bak
